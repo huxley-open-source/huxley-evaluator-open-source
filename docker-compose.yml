@@ -1,0 +1,25 @@
+version: '3.4'
+
+services:
+
+  huxley-evaluator:
+    build: .
+    volumes:
+      - type: volume
+        source: testscases 
+        target: /mnt/nfs/var/testcases 
+        volume:
+          nocopy: true
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2GB
+
+volumes:
+  testscases:
+    driver_opts:
+      type: "nfs"
+      o: "addr=200.17.112.25,nolock,soft,rw"
+      device: ":/home/huxley/data/testcases"

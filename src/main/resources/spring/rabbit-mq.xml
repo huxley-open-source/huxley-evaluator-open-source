@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	xmlns:rabbit="http://www.springframework.org/schema/rabbit"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="
+        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.2.xsd
+        http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.2.xsd
+		http://www.springframework.org/schema/rabbit http://www.springframework.org/schema/rabbit/spring-rabbit-1.6.xsd">
+			
+	<context:property-placeholder  location="classpath:application.properties" />
+
+    <rabbit:connection-factory id="connectionFactory" host="${rabbit.url}" port="${rabbit.port}" username="${rabbit.username}" password="${rabbit.password}" />
+    
+    <rabbit:admin connection-factory="connectionFactory"/>
+    
+    <bean id="converter" class="org.springframework.amqp.support.converter.JsonMessageConverter" />
+    
+    <bean id="oracleListener" class="com.thehuxley.oracle.OracleListener">
+    	<property name="amqpTemplate" ref="amqpTemplate" />
+    	<property name="tempDir" value="${tempDir}" />
+    	<property name="scriptDir" value="${scriptDir}" />
+    </bean>
+
+    <bean id="evaluatorListener" class="com.thehuxley.evaluator.EvaluatorListener">
+    	<property name="amqpTemplate" ref="amqpTemplate" />
+    	<property name="tempDir" value="${tempDir}" />
+    	<property name="scriptDir" value="${scriptDir}" />
+    	<property name="testCaseDir" value="${testCaseDir}" />
+    </bean>
+    
+    <bean id="codeRunnerListener" class="com.thehuxley.code.CodeRunnerListener">
+    	<property name="amqpTemplate" ref="amqpTemplate" />
+    	<property name="tempDir" value="${tempDir}" />
+    	<property name="scriptDir" value="${scriptDir}" />
+    </bean>
+	
+    <rabbit:template id="amqpTemplate" connection-factory="connectionFactory" message-converter="converter" />
+    
+    <rabbit:queue name="code_queue" durable="true" exclusive="false" auto-delete="false" />
+    
+    <rabbit:queue name="code_result_queue" durable="true" exclusive="false" auto-delete="false" />
+    
+    <rabbit:queue name="oracle_result_queue" durable="true" exclusive="false" auto-delete="false" />
+
+    <rabbit:queue name="oracle_queue" durable="true" exclusive="false" auto-delete="false" />
+    
+    <rabbit:queue name="submission_queue" durable="true" exclusive="false" auto-delete="false">
+	    <rabbit:queue-arguments>
+	        <entry key="x-max-priority" value="10" value-type="java.lang.Integer" />
+	    </rabbit:queue-arguments>
+	</rabbit:queue> 
+	    
+    <rabbit:queue name="evaluation_queue" durable="true" exclusive="false" auto-delete="false">
+	    <rabbit:queue-arguments>
+	        <entry key="x-max-priority" value="10" value-type="java.lang.Integer" />
+	    </rabbit:queue-arguments>
+	</rabbit:queue>
+
+    <rabbit:listener-container connection-factory="connectionFactory" concurrency="1" max-concurrency="4">
+    	<rabbit:listener ref="oracleListener" queues="oracle_queue" />
+    	<rabbit:listener ref="evaluatorListener" queues="submission_queue" />
+    	<rabbit:listener ref="codeRunnerListener" queues="code_queue" />
+    </rabbit:listener-container>
+    
+</beans>

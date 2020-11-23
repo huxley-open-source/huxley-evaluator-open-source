@@ -1,0 +1,1 @@
+nome = raw_input()
